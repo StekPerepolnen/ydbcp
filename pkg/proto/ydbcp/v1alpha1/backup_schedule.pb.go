@@ -79,6 +79,7 @@ type BackupSchedulePattern struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
+	// Crontab expression defining the schedule.
 	Crontab string `protobuf:"bytes,1,opt,name=crontab,proto3" json:"crontab,omitempty"`
 }
 
@@ -126,9 +127,12 @@ type BackupScheduleSettings struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	SchedulePattern        *BackupSchedulePattern `protobuf:"bytes,1,opt,name=schedule_pattern,json=schedulePattern,proto3" json:"schedule_pattern,omitempty"`
-	Ttl                    *durationpb.Duration   `protobuf:"bytes,2,opt,name=ttl,proto3" json:"ttl,omitempty"`
-	RecoveryPointObjective *durationpb.Duration   `protobuf:"bytes,3,opt,name=recovery_point_objective,json=recoveryPointObjective,proto3" json:"recovery_point_objective,omitempty"`
+	// Pattern for scheduling backups.
+	SchedulePattern *BackupSchedulePattern `protobuf:"bytes,1,opt,name=schedule_pattern,json=schedulePattern,proto3" json:"schedule_pattern,omitempty"`
+	// Time-to-live for the backups created by this schedule.
+	Ttl *durationpb.Duration `protobuf:"bytes,2,opt,name=ttl,proto3" json:"ttl,omitempty"`
+	// Recovery point objective duration (maximum length of time permitted, that data can be restored).
+	RecoveryPointObjective *durationpb.Duration `protobuf:"bytes,3,opt,name=recovery_point_objective,json=recoveryPointObjective,proto3" json:"recovery_point_objective,omitempty"`
 }
 
 func (x *BackupScheduleSettings) Reset() {
@@ -189,10 +193,17 @@ type ScheduledBackupInfo struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	BackupId                    string                 `protobuf:"bytes,1,opt,name=backup_id,json=backupId,proto3" json:"backup_id,omitempty"`
-	RecoveryPoint               *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=recovery_point,json=recoveryPoint,proto3" json:"recovery_point,omitempty"`
-	LastBackupRpoMarginInterval *durationpb.Duration   `protobuf:"bytes,3,opt,name=last_backup_rpo_margin_interval,json=lastBackupRpoMarginInterval,proto3" json:"last_backup_rpo_margin_interval,omitempty"`
-	LastBackupRpoMarginRatio    float64                `protobuf:"fixed64,4,opt,name=last_backup_rpo_margin_ratio,json=lastBackupRpoMarginRatio,proto3" json:"last_backup_rpo_margin_ratio,omitempty"`
+	// Unique identifier for the backup.
+	BackupId string `protobuf:"bytes,1,opt,name=backup_id,json=backupId,proto3" json:"backup_id,omitempty"`
+	// Current recovery point
+	// (the datetime at which the last successful backup has been taken).
+	RecoveryPoint *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=recovery_point,json=recoveryPoint,proto3" json:"recovery_point,omitempty"`
+	// Margin interval for the last backup's rpo
+	// (how much time was left to break the rpo at the moment when the last backup completed,
+	// negative means is has been broken).
+	LastBackupRpoMarginInterval *durationpb.Duration `protobuf:"bytes,3,opt,name=last_backup_rpo_margin_interval,json=lastBackupRpoMarginInterval,proto3" json:"last_backup_rpo_margin_interval,omitempty"`
+	// Margin ratio for the last backup's rpo (the same as the previous as a share of the rpo).
+	LastBackupRpoMarginRatio float64 `protobuf:"fixed64,4,opt,name=last_backup_rpo_margin_ratio,json=lastBackupRpoMarginRatio,proto3" json:"last_backup_rpo_margin_ratio,omitempty"`
 }
 
 func (x *ScheduledBackupInfo) Reset() {
@@ -260,19 +271,36 @@ type BackupSchedule struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// backup settings
-	Id                       string                  `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	ContainerId              string                  `protobuf:"bytes,2,opt,name=container_id,json=containerId,proto3" json:"container_id,omitempty"`
-	DatabaseName             string                  `protobuf:"bytes,3,opt,name=database_name,json=databaseName,proto3" json:"database_name,omitempty"`
-	Endpoint                 string                  `protobuf:"bytes,4,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
-	SourcePaths              []string                `protobuf:"bytes,5,rep,name=source_paths,json=sourcePaths,proto3" json:"source_paths,omitempty"`                                // [(size) = "<=256"];
-	SourcePathsToExclude     []string                `protobuf:"bytes,6,rep,name=source_paths_to_exclude,json=sourcePathsToExclude,proto3" json:"source_paths_to_exclude,omitempty"` // [(size) = "<=256"];
-	Audit                    *AuditInfo              `protobuf:"bytes,7,opt,name=audit,proto3" json:"audit,omitempty"`
-	ScheduleName             string                  `protobuf:"bytes,8,opt,name=schedule_name,json=scheduleName,proto3" json:"schedule_name,omitempty"`
-	Status                   BackupSchedule_Status   `protobuf:"varint,9,opt,name=status,proto3,enum=ydbcp.v1alpha1.BackupSchedule_Status" json:"status,omitempty"`
-	ScheduleSettings         *BackupScheduleSettings `protobuf:"bytes,10,opt,name=schedule_settings,json=scheduleSettings,proto3" json:"schedule_settings,omitempty"`
-	NextLaunch               *timestamppb.Timestamp  `protobuf:"bytes,11,opt,name=next_launch,json=nextLaunch,proto3" json:"next_launch,omitempty"`
-	LastSuccessfulBackupInfo *ScheduledBackupInfo    `protobuf:"bytes,12,opt,name=last_successful_backup_info,json=lastSuccessfulBackupInfo,proto3" json:"last_successful_backup_info,omitempty"`
+	// Unique identifier for the backup schedule.
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// An identifier of an external resource which holds the record about the backup
+	// (it can be the container id where the database is located).
+	ContainerId string `protobuf:"bytes,2,opt,name=container_id,json=containerId,proto3" json:"container_id,omitempty"`
+	// Name of the database associated with the backup schedule.
+	DatabaseName string `protobuf:"bytes,3,opt,name=database_name,json=databaseName,proto3" json:"database_name,omitempty"`
+	// GRPC endpoint of the database.
+	Endpoint string `protobuf:"bytes,4,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
+	// List of source paths included in the backup (empty list means backup of root directory).
+	SourcePaths []string `protobuf:"bytes,5,rep,name=source_paths,json=sourcePaths,proto3" json:"source_paths,omitempty"` // [(size) = "<=256"];
+	// List of source paths to exclude from the backup.
+	SourcePathsToExclude []string `protobuf:"bytes,6,rep,name=source_paths_to_exclude,json=sourcePathsToExclude,proto3" json:"source_paths_to_exclude,omitempty"` // [(size) = "<=256"];
+	// Audit information for the backup schedule.
+	Audit *AuditInfo `protobuf:"bytes,7,opt,name=audit,proto3" json:"audit,omitempty"`
+	// Name of the backup schedule.
+	ScheduleName string `protobuf:"bytes,8,opt,name=schedule_name,json=scheduleName,proto3" json:"schedule_name,omitempty"`
+	// Current status of the backup schedule.
+	Status BackupSchedule_Status `protobuf:"varint,9,opt,name=status,proto3,enum=ydbcp.v1alpha1.BackupSchedule_Status" json:"status,omitempty"`
+	// Settings for the backup schedule.
+	ScheduleSettings *BackupScheduleSettings `protobuf:"bytes,10,opt,name=schedule_settings,json=scheduleSettings,proto3" json:"schedule_settings,omitempty"`
+	// Timestamp for the next scheduled backup.
+	NextLaunch *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=next_launch,json=nextLaunch,proto3" json:"next_launch,omitempty"`
+	// Information about the last successful backup.
+	LastSuccessfulBackupInfo *ScheduledBackupInfo `protobuf:"bytes,12,opt,name=last_successful_backup_info,json=lastSuccessfulBackupInfo,proto3" json:"last_successful_backup_info,omitempty"`
+	// Flag indicating whether encryption is enabled for the backups.
+	EnableEncryption bool `protobuf:"varint,13,opt,name=enable_encryption,json=enableEncryption,proto3" json:"enable_encryption,omitempty"`
+	// The KMS key ID that should be used to encrypt the DEK (data encryption key).
+	// Should be provided if enable_encryption is true.
+	KmsKeyId string `protobuf:"bytes,14,opt,name=kms_key_id,json=kmsKeyId,proto3" json:"kms_key_id,omitempty"`
 }
 
 func (x *BackupSchedule) Reset() {
@@ -391,6 +419,20 @@ func (x *BackupSchedule) GetLastSuccessfulBackupInfo() *ScheduledBackupInfo {
 	return nil
 }
 
+func (x *BackupSchedule) GetEnableEncryption() bool {
+	if x != nil {
+		return x.EnableEncryption
+	}
+	return false
+}
+
+func (x *BackupSchedule) GetKmsKeyId() string {
+	if x != nil {
+		return x.KmsKeyId
+	}
+	return ""
+}
+
 var File_ydbcp_v1alpha1_backup_schedule_proto protoreflect.FileDescriptor
 
 var file_ydbcp_v1alpha1_backup_schedule_proto_rawDesc = []byte{
@@ -439,7 +481,7 @@ var file_ydbcp_v1alpha1_backup_schedule_proto_rawDesc = []byte{
 	0x70, 0x6f, 0x5f, 0x6d, 0x61, 0x72, 0x67, 0x69, 0x6e, 0x5f, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x18,
 	0x04, 0x20, 0x01, 0x28, 0x01, 0x52, 0x18, 0x6c, 0x61, 0x73, 0x74, 0x42, 0x61, 0x63, 0x6b, 0x75,
 	0x70, 0x52, 0x70, 0x6f, 0x4d, 0x61, 0x72, 0x67, 0x69, 0x6e, 0x52, 0x61, 0x74, 0x69, 0x6f, 0x22,
-	0xb2, 0x05, 0x0a, 0x0e, 0x42, 0x61, 0x63, 0x6b, 0x75, 0x70, 0x53, 0x63, 0x68, 0x65, 0x64, 0x75,
+	0xfd, 0x05, 0x0a, 0x0e, 0x42, 0x61, 0x63, 0x6b, 0x75, 0x70, 0x53, 0x63, 0x68, 0x65, 0x64, 0x75,
 	0x6c, 0x65, 0x12, 0x0e, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x02,
 	0x69, 0x64, 0x12, 0x21, 0x0a, 0x0c, 0x63, 0x6f, 0x6e, 0x74, 0x61, 0x69, 0x6e, 0x65, 0x72, 0x5f,
 	0x69, 0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0b, 0x63, 0x6f, 0x6e, 0x74, 0x61, 0x69,
@@ -477,16 +519,21 @@ var file_ydbcp_v1alpha1_backup_schedule_proto_rawDesc = []byte{
 	0x64, 0x62, 0x63, 0x70, 0x2e, 0x76, 0x31, 0x61, 0x6c, 0x70, 0x68, 0x61, 0x31, 0x2e, 0x53, 0x63,
 	0x68, 0x65, 0x64, 0x75, 0x6c, 0x65, 0x64, 0x42, 0x61, 0x63, 0x6b, 0x75, 0x70, 0x49, 0x6e, 0x66,
 	0x6f, 0x52, 0x18, 0x6c, 0x61, 0x73, 0x74, 0x53, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73, 0x66, 0x75,
-	0x6c, 0x42, 0x61, 0x63, 0x6b, 0x75, 0x70, 0x49, 0x6e, 0x66, 0x6f, 0x22, 0x47, 0x0a, 0x06, 0x53,
-	0x74, 0x61, 0x74, 0x75, 0x73, 0x12, 0x16, 0x0a, 0x12, 0x53, 0x54, 0x41, 0x54, 0x55, 0x53, 0x5f,
-	0x55, 0x4e, 0x53, 0x50, 0x45, 0x43, 0x49, 0x46, 0x49, 0x45, 0x44, 0x10, 0x00, 0x12, 0x0a, 0x0a,
-	0x06, 0x41, 0x43, 0x54, 0x49, 0x56, 0x45, 0x10, 0x01, 0x12, 0x0c, 0x0a, 0x08, 0x49, 0x4e, 0x41,
-	0x43, 0x54, 0x49, 0x56, 0x45, 0x10, 0x02, 0x12, 0x0b, 0x0a, 0x07, 0x44, 0x45, 0x4c, 0x45, 0x54,
-	0x45, 0x44, 0x10, 0x03, 0x42, 0x3e, 0x5a, 0x3c, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63,
-	0x6f, 0x6d, 0x2f, 0x79, 0x64, 0x62, 0x2d, 0x70, 0x6c, 0x61, 0x74, 0x66, 0x6f, 0x72, 0x6d, 0x2f,
-	0x79, 0x64, 0x62, 0x63, 0x70, 0x2f, 0x70, 0x6b, 0x67, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f,
-	0x79, 0x64, 0x62, 0x63, 0x70, 0x2f, 0x76, 0x31, 0x61, 0x6c, 0x70, 0x68, 0x61, 0x31, 0x3b, 0x79,
-	0x64, 0x62, 0x63, 0x70, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x6c, 0x42, 0x61, 0x63, 0x6b, 0x75, 0x70, 0x49, 0x6e, 0x66, 0x6f, 0x12, 0x2b, 0x0a, 0x11, 0x65,
+	0x6e, 0x61, 0x62, 0x6c, 0x65, 0x5f, 0x65, 0x6e, 0x63, 0x72, 0x79, 0x70, 0x74, 0x69, 0x6f, 0x6e,
+	0x18, 0x0d, 0x20, 0x01, 0x28, 0x08, 0x52, 0x10, 0x65, 0x6e, 0x61, 0x62, 0x6c, 0x65, 0x45, 0x6e,
+	0x63, 0x72, 0x79, 0x70, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x1c, 0x0a, 0x0a, 0x6b, 0x6d, 0x73, 0x5f,
+	0x6b, 0x65, 0x79, 0x5f, 0x69, 0x64, 0x18, 0x0e, 0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x6b, 0x6d,
+	0x73, 0x4b, 0x65, 0x79, 0x49, 0x64, 0x22, 0x47, 0x0a, 0x06, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73,
+	0x12, 0x16, 0x0a, 0x12, 0x53, 0x54, 0x41, 0x54, 0x55, 0x53, 0x5f, 0x55, 0x4e, 0x53, 0x50, 0x45,
+	0x43, 0x49, 0x46, 0x49, 0x45, 0x44, 0x10, 0x00, 0x12, 0x0a, 0x0a, 0x06, 0x41, 0x43, 0x54, 0x49,
+	0x56, 0x45, 0x10, 0x01, 0x12, 0x0c, 0x0a, 0x08, 0x49, 0x4e, 0x41, 0x43, 0x54, 0x49, 0x56, 0x45,
+	0x10, 0x02, 0x12, 0x0b, 0x0a, 0x07, 0x44, 0x45, 0x4c, 0x45, 0x54, 0x45, 0x44, 0x10, 0x03, 0x42,
+	0x3e, 0x5a, 0x3c, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x79, 0x64,
+	0x62, 0x2d, 0x70, 0x6c, 0x61, 0x74, 0x66, 0x6f, 0x72, 0x6d, 0x2f, 0x79, 0x64, 0x62, 0x63, 0x70,
+	0x2f, 0x70, 0x6b, 0x67, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x79, 0x64, 0x62, 0x63, 0x70,
+	0x2f, 0x76, 0x31, 0x61, 0x6c, 0x70, 0x68, 0x61, 0x31, 0x3b, 0x79, 0x64, 0x62, 0x63, 0x70, 0x62,
+	0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (

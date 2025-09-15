@@ -30,12 +30,27 @@ const (
 // BackupScheduleServiceClient is the client API for BackupScheduleService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// Service for managing backup schedules.
+// YDB auth token can be passed via GRPC request metadata using authorization header.
 type BackupScheduleServiceClient interface {
+	// Creates a new backup schedule.
+	// Required YDB permissions: `ydb.databases.backup`
 	CreateBackupSchedule(ctx context.Context, in *CreateBackupScheduleRequest, opts ...grpc.CallOption) (*BackupSchedule, error)
+	// Updates an existing backup schedule by its ID.
+	// Required YDB permissions: `ydb.databases.backup`
 	UpdateBackupSchedule(ctx context.Context, in *UpdateBackupScheduleRequest, opts ...grpc.CallOption) (*BackupSchedule, error)
+	// Retrieves a backup schedule by its ID.
+	// Required YDB permissions: `ydb.databases.get`
 	GetBackupSchedule(ctx context.Context, in *GetBackupScheduleRequest, opts ...grpc.CallOption) (*BackupSchedule, error)
+	// Lists all backup schedules for a specified container.
+	// Required YDB permissions: `ydb.databases.list`
 	ListBackupSchedules(ctx context.Context, in *ListBackupSchedulesRequest, opts ...grpc.CallOption) (*ListBackupSchedulesResponse, error)
+	// Toggles the state of a backup schedule by its ID.
+	// Required YDB permissions: `ydb.databases.backup`
 	ToggleBackupSchedule(ctx context.Context, in *ToggleBackupScheduleRequest, opts ...grpc.CallOption) (*BackupSchedule, error)
+	// Deletes a backup schedule by its ID.
+	// Required YDB permissions: `ydb.databases.backup`
 	DeleteBackupSchedule(ctx context.Context, in *DeleteBackupScheduleRequest, opts ...grpc.CallOption) (*BackupSchedule, error)
 }
 
@@ -103,13 +118,28 @@ func (c *backupScheduleServiceClient) DeleteBackupSchedule(ctx context.Context, 
 
 // BackupScheduleServiceServer is the server API for BackupScheduleService service.
 // All implementations must embed UnimplementedBackupScheduleServiceServer
-// for forward compatibility
+// for forward compatibility.
+//
+// Service for managing backup schedules.
+// YDB auth token can be passed via GRPC request metadata using authorization header.
 type BackupScheduleServiceServer interface {
+	// Creates a new backup schedule.
+	// Required YDB permissions: `ydb.databases.backup`
 	CreateBackupSchedule(context.Context, *CreateBackupScheduleRequest) (*BackupSchedule, error)
+	// Updates an existing backup schedule by its ID.
+	// Required YDB permissions: `ydb.databases.backup`
 	UpdateBackupSchedule(context.Context, *UpdateBackupScheduleRequest) (*BackupSchedule, error)
+	// Retrieves a backup schedule by its ID.
+	// Required YDB permissions: `ydb.databases.get`
 	GetBackupSchedule(context.Context, *GetBackupScheduleRequest) (*BackupSchedule, error)
+	// Lists all backup schedules for a specified container.
+	// Required YDB permissions: `ydb.databases.list`
 	ListBackupSchedules(context.Context, *ListBackupSchedulesRequest) (*ListBackupSchedulesResponse, error)
+	// Toggles the state of a backup schedule by its ID.
+	// Required YDB permissions: `ydb.databases.backup`
 	ToggleBackupSchedule(context.Context, *ToggleBackupScheduleRequest) (*BackupSchedule, error)
+	// Deletes a backup schedule by its ID.
+	// Required YDB permissions: `ydb.databases.backup`
 	DeleteBackupSchedule(context.Context, *DeleteBackupScheduleRequest) (*BackupSchedule, error)
 	mustEmbedUnimplementedBackupScheduleServiceServer()
 }

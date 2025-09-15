@@ -69,4 +69,9 @@ message BackupSchedule {
     google.protobuf.Timestamp next_launch = 11;
     // Information about the last successful backup.
     ScheduledBackupInfo last_successful_backup_info = 12;
+    // Flag indicating whether encryption is enabled for the backups.
+    bool enable_encryption = 13;
+    // The KMS key ID that should be used to encrypt the DEK (data encryption key).
+    // Should be provided if enable_encryption is true.
+    string kms_key_id = 14;
 }

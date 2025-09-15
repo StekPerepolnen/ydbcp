@@ -49,6 +49,11 @@ message CreateBackupScheduleRequest {
     string schedule_name = 6;
     // The settings for the backup schedule.
     BackupScheduleSettings schedule_settings = 7;
+    // Flag indicating whether encryption is enabled for the backups.
+    bool enable_encryption = 8;
+    // The KMS key ID that should be used to encrypt the DEK (data encryption key).
+    // Should be provided if enable_encryption is true.
+    string kms_key_id = 9;
 }
 
 message UpdateBackupScheduleRequest {

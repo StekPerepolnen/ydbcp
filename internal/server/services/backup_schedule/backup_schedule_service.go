@@ -68,6 +68,11 @@ func (s *BackupScheduleService) CreateBackupSchedule(
 		return nil, err
 	}
 
+	if request.EnableEncryption {
+		s.IncApiCallsCounter(methodName, codes.Unimplemented)
+		return nil, status.Error(codes.Unimplemented, "backup encryption is not supported yet")
+	}
+
 	schedules, err := s.driver.SelectBackupSchedules(
 		ctx, queries.NewReadTableQuery(
 			queries.WithTableName("BackupSchedules"),
